@@ -115,7 +115,7 @@ import img_RobertoGarcia from "@/assets/Faculty-Image/RobertoGarcia.jpg";
 import img_Romil from "@/assets/Faculty-Image/Romil saxena.png";
 import img_RondellGraham from "@/assets/Faculty-Image/RondellGraham.jpg";
 import img_RosalynnNazarian from "@/assets/Faculty-Image/RosalynnNazarian.jpg";
-import img_Sanjita from "@/assets/Faculty-Image/Sanjita.jpg";
+import img_Sanjita from "@/assets/Faculty-Image/Sanjita.png";
 import img_Sanam_Loghavi from "@/assets/Faculty-Image/Sanam_Loghavi.jpg";
 import img_SeanWilliamson from "@/assets/Faculty-Image/SeanWilliamson.jpg";
 import img_Shefali_Chopra from "@/assets/Faculty-Image/Shefali Chopra.jpg";
