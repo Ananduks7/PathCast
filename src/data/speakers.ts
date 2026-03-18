@@ -71,7 +71,7 @@ import img_KarenTalia from "@/assets/Faculty-Image/KarenTalia.jpg";
 import img_KathleenMontone from "@/assets/Faculty-Image/KathleenMontone.jpg";
 import img_KayPark from "@/assets/Faculty-Image/KayPark.jpg";
 import img_Kiyoko_Oshima from "@/assets/Faculty-Image/Kiyoko Oshima.jpg";
-import img_Kristen from "@/assets/Faculty-Image/Kristen Muller.jpg";
+import img_Kristen from "@/assets/Faculty-Image/Kristen-Muller.jpg";
 import img_LesterThompson from "@/assets/Faculty-Image/LesterThompson.jpg";
 import img_Lien_Hoang from "@/assets/Faculty-Image/Lien Hoang.jpg";
 import img_LysandraVoltaggio from "@/assets/Faculty-Image/LysandraVoltaggio.jpg";
