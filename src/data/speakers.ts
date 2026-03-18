@@ -112,7 +112,7 @@ import img_RichardScolyer from "@/assets/Faculty-Image/RichardScolyer.jpg";
 import img_RishPai from "@/assets/Faculty-Image/RishPai.jpg";
 import img_Robert_Anders from "@/assets/Faculty-Image/Robert Anders.jpg";
 import img_RobertoGarcia from "@/assets/Faculty-Image/RobertoGarcia.jpg";
-import img_Romil from "@/assets/Faculty-Image/Romil saxena.jpg";
+import img_Romil from "@/assets/Faculty-Image/Romil saxena.png";
 import img_RondellGraham from "@/assets/Faculty-Image/RondellGraham.jpg";
 import img_RosalynnNazarian from "@/assets/Faculty-Image/RosalynnNazarian.jpg";
 import img_Sanjita from "@/assets/Faculty-Image/Sanjita.jpg";
