@@ -3,27 +3,21 @@ import { getLiveVideos } from "@/services/youtubeService";
 import type { Lecture } from "@/data/lectures";
 
 /**
- * Global hook that polls the YouTube channel for active live streams.
+ * Hook that polls the YouTube channel for active live streams.
  *
- * - Polls every 30 seconds so the UI reacts within half a minute of a stream
- *   starting or ending.
- * - `staleTime` is kept shorter than the refetch interval so every poll is
- *   treated as "fresh" immediately.
- * - Always enabled (no visibility gate) so the Navbar can use it on every page.
- *
- * Because React Query deduplicates by `queryKey`, every component that calls
- * this hook shares the same underlying fetch — no duplicate network requests.
+ * - Polls every 2 minutes to conserve YouTube Data API v3 quota.
+ * - Background polling disabled — tab must be visible to poll.
+ * - React Query deduplicates by queryKey: all components share one request.
  */
 export const useLiveStatus = () => {
   const query = useQuery<Lecture[]>({
     queryKey: ["youtube", "live-status"],
     queryFn: () => getLiveVideos(4),
-    staleTime: 0, // always treat data as stale so refetches actually run
-    gcTime: 30 * 1000, // garbage-collect old data after 30 s
-    refetchInterval: 30 * 1000, // poll every 30 s
-    refetchIntervalInBackground: true, // keep polling even if the tab is hidden
-    retry: 2,
-    // Ensure React re-renders when the live video list changes (different IDs)
+    staleTime: 60 * 1000, // consider data stale after 1 min
+    gcTime: 5 * 60 * 1000, // keep unused data for 5 min
+    refetchInterval: 2 * 60 * 1000, // poll every 2 minutes
+    refetchIntervalInBackground: false, // pause polling when tab is hidden
+    retry: 1,
     structuralSharing: false,
   });
 

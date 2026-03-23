@@ -1,4 +1,4 @@
-import { Play, Info, Clock, User } from "lucide-react";
+import { Play, Clock, User } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -60,12 +60,16 @@ const VideoCard = ({ lecture, onPlay }: VideoCardProps) => {
   }, [showPreview]);
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
       className="relative flex-shrink-0 w-[200px] md:w-[260px] lg:w-[360px] cursor-pointer group"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onClick={() => onPlay?.(lecture)}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.35 }}
     >
       {/* Base card */}
       <div className="video-card-base rounded-md overflow-hidden">
@@ -162,16 +166,6 @@ const VideoCard = ({ lecture, onPlay }: VideoCardProps) => {
                       <Play className="w-4 h-4 fill-current" />
                       Watch
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlay?.(lecture);
-                      }}
-                      className="flex items-center gap-1.5 border border-border text-foreground px-3 py-2 rounded-md text-sm font-medium hover:bg-accent transition-colors"
-                    >
-                      <Info className="w-4 h-4" />
-                      Details
-                    </button>
                   </div>
 
                   <div>
@@ -203,7 +197,7 @@ const VideoCard = ({ lecture, onPlay }: VideoCardProps) => {
           </AnimatePresence>,
           document.body,
         )}
-    </div>
+    </motion.div>
   );
 };
 

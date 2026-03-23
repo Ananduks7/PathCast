@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Send, Linkedin, Youtube } from "lucide-react";
+import {
+  Mail,
+  Send,
+  Linkedin,
+  Youtube,
+  Facebook,
+  Instagram,
+} from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +49,7 @@ const Contact = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium tracking-widest uppercase text-teal-300/80 mb-4"
+            className="text-sm font-medium tracking-widest uppercase text-[#7EECD8] mb-4"
           >
             Get in Touch
           </motion.p>
@@ -66,121 +73,154 @@ const Contact = () => {
       </section>
 
       <section className="section-a w-full">
-      <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 pb-12 pt-10">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
-          {/* Form */}
-          <motion.form
-            onSubmit={handleSubmit}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="md:col-span-3 space-y-5"
-          >
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Name
-              </label>
-              <input
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Your name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Email
-              </label>
-              <input
-                required
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="you@email.com"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Institution
-              </label>
-              <input
-                value={form.institution}
-                onChange={(e) =>
-                  setForm({ ...form, institution: e.target.value })
-                }
-                className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
-                placeholder="Your institution (optional)"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                Message
-              </label>
-              <textarea
-                required
-                rows={5}
-                value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
-                className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 resize-none"
-                placeholder="Your message..."
-              />
-            </div>
-            <button
-              type="submit"
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+        <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 pb-12 pt-10">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
+            {/* Form */}
+            <motion.form
+              onSubmit={handleSubmit}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="md:col-span-3 space-y-5"
             >
-              <Send className="w-4 h-4" />
-              Send Message
-            </button>
-          </motion.form>
-
-          {/* Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="md:col-span-2 space-y-6"
-          >
-            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Get in Touch
-              </h3>
-              <a
-                href="mailto:info@pathcast.net"
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Name
+                </label>
+                <input
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Your name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Email
+                </label>
+                <input
+                  required
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="you@email.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Institution
+                </label>
+                <input
+                  value={form.institution}
+                  onChange={(e) =>
+                    setForm({ ...form, institution: e.target.value })
+                  }
+                  className="w-full h-11 px-4 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Your institution (optional)"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Message
+                </label>
+                <textarea
+                  required
+                  rows={5}
+                  value={form.message}
+                  onChange={(e) =>
+                    setForm({ ...form, message: e.target.value })
+                  }
+                  className="w-full px-4 py-3 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  placeholder="Your message..."
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
               >
-                <Mail className="w-4 h-4 text-primary" /> info@pathcast.net
-              </a>
-            </div>
+                <Send className="w-4 h-4" />
+                Send Message
+              </button>
+            </motion.form>
 
-            <div className="bg-card border border-border rounded-xl p-6 space-y-4">
-              <h3 className="text-sm font-semibold text-foreground">
-                Follow Us
-              </h3>
-              <div className="flex flex-col gap-3">
+            {/* Contact Info */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="md:col-span-2 space-y-6"
+            >
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Get in Touch
+                </h3>
                 <a
-                  href="https://www.linkedin.com/company/pathcast/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="mailto:info@pathcast.net"
                   className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <Linkedin className="w-4 h-4 text-primary" /> LinkedIn
-                </a>
-                <a
-                  href="https://www.youtube.com/@pathCast"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Youtube className="w-4 h-4 text-primary" /> YouTube
+                  <Mail className="w-4 h-4 text-primary" /> info@pathcast.net
                 </a>
               </div>
-            </div>
-          </motion.div>
+
+              <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+                <h3 className="text-sm font-semibold text-foreground">
+                  Follow Us
+                </h3>
+                <div className="flex flex-col gap-3">
+                  <a
+                    href="https://www.linkedin.com/in/rifat-mannan/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Linkedin className="w-4 h-4 text-primary" /> LinkedIn
+                  </a>
+                  <a
+                    href="https://www.youtube.com/@pathCast"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Youtube className="w-4 h-4 text-primary" /> YouTube
+                  </a>
+                  <a
+                    href="https://x.com/pathcast"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      className="w-4 h-4 text-primary fill-current"
+                      aria-hidden="true"
+                    >
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.261 5.632 5.903-5.632Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                    </svg>{" "}
+                    X
+                  </a>
+                  <a
+                    href="https://www.facebook.com/pathcast"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Facebook className="w-4 h-4 text-primary" /> Facebook
+                  </a>
+                  <a
+                    href="https://www.instagram.com/pathcast"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Instagram className="w-4 h-4 text-primary" /> Instagram
+                  </a>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         </div>
-      </div>
       </section>
       <Footer />
     </div>

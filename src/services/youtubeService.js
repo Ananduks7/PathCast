@@ -1,8 +1,37 @@
 const YOUTUBE_API_BASE = "https://www.googleapis.com/youtube/v3";
-const CACHE_TTL_MS = 10 * 60 * 1000;
+const CACHE_TTL_MS = 20 * 60 * 1000; // default 20 min
 
 const responseCache = new Map();
 const inFlightRequests = new Map();
+
+// ── localStorage persistence layer ──────────────────────────────────────────
+const LS_PREFIX = "yt_cache:";
+
+const lsGet = (key) => {
+  try {
+    const raw = localStorage.getItem(LS_PREFIX + key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const lsSet = (key, value) => {
+  try {
+    localStorage.setItem(LS_PREFIX + key, JSON.stringify(value));
+  } catch {
+    // Ignore storage quota errors
+  }
+};
+
+const lsClear = () => {
+  try {
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(LS_PREFIX));
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+};
 
 const requireEnv = () => {
   const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
@@ -17,12 +46,21 @@ const requireEnv = () => {
 
 const withCache = async (cacheKey, fetcher, ttl = CACHE_TTL_MS) => {
   const now = Date.now();
-  const cached = responseCache.get(cacheKey);
 
-  if (cached && now - cached.timestamp < ttl) {
-    return cached.data;
+  // 1. In-memory (fastest)
+  const memCached = responseCache.get(cacheKey);
+  if (memCached && now - memCached.timestamp < ttl) {
+    return memCached.data;
   }
 
+  // 2. localStorage (survives page refresh)
+  const lsCached = lsGet(cacheKey);
+  if (lsCached && now - lsCached.timestamp < ttl) {
+    responseCache.set(cacheKey, lsCached); // warm in-memory cache
+    return lsCached.data;
+  }
+
+  // 3. Deduplicate concurrent requests for the same key
   const existingRequest = inFlightRequests.get(cacheKey);
   if (existingRequest) {
     return existingRequest;
@@ -30,7 +68,9 @@ const withCache = async (cacheKey, fetcher, ttl = CACHE_TTL_MS) => {
 
   const requestPromise = fetcher()
     .then((data) => {
-      responseCache.set(cacheKey, { data, timestamp: Date.now() });
+      const entry = { data, timestamp: Date.now() };
+      responseCache.set(cacheKey, entry);
+      lsSet(cacheKey, entry);
       return data;
     })
     .finally(() => {
@@ -198,7 +238,7 @@ export const getChannelPlaylists = async () => {
         videoCount: Number(item.contentDetails?.itemCount ?? 0),
       }));
     },
-    30 * 60 * 1000
+    2 * 60 * 60 * 1000 // 2 hours
   );
 };
 
@@ -236,7 +276,47 @@ export const getPlaylistVideos = async (playlistId) => {
         .filter(Boolean)
         .map((video) => toLecture(video, {}, fallbackCategory));
     },
-    20 * 60 * 1000
+    60 * 60 * 1000 // 1 hour
+  );
+};
+
+/**
+ * Full-text video search across the channel.
+ * Returns Lecture-shaped objects ready to pass to VideoCard.
+ */
+export const searchChannelVideos = async (query, limit = 24) => {
+  const { channelId } = requireEnv();
+  const safe = String(query ?? "").trim();
+  if (!safe) return [];
+
+  return withCache(
+    `search-videos:${channelId}:${safe}:${limit}`,
+    async () => {
+      const searchPayload = await youtubeRequest("search", {
+        part: "snippet",
+        channelId,
+        type: "video",
+        order: "relevance",
+        q: safe,
+        maxResults: String(Math.min(limit, 50)),
+      });
+
+      return (searchPayload.items ?? []).map((item) => ({
+        id: item.id?.videoId ?? "",
+        youtubeId: item.id?.videoId ?? "",
+        title: item.snippet?.title ?? "Untitled",
+        speaker: item.snippet?.channelTitle ?? "",
+        specialty: "General Pathology",
+        duration: "",
+        thumbnail:
+          item.snippet?.thumbnails?.high?.url ||
+          item.snippet?.thumbnails?.medium?.url ||
+          `https://img.youtube.com/vi/${item.id?.videoId}/hqdefault.jpg`,
+        description: item.snippet?.description ?? "",
+        publishedAt: item.snippet?.publishedAt,
+      }));
+    },
+    5 * 60 * 1000 // 5 min
   );
 };
 
@@ -323,16 +403,54 @@ export const getLatestVideos = async (limit = 20) => {
   return withCache(
     `latest-videos:${channelId}:${limit}`,
     async () => {
-      const [videos, categoryLookup] = await Promise.all([
-        getVideosFromSearch({ order: "date" }, limit),
-        getCategoryLookup(),
-      ]);
+      // Skip getCategoryLookup — avoids 50+ extra API calls.
+      // Videos show "General Pathology" as specialty on the home page rows.
+      const videos = await getVideosFromSearch({ order: "date" }, limit);
 
       return videos
-        .map((video) => toLecture(video, categoryLookup))
+        .map((video) => toLecture(video, {}))
         .sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime())
         .slice(0, limit);
-    }
+    },
+    30 * 60 * 1000 // 30 min
+  );
+};
+
+/**
+ * Lightweight variant for global / Navbar search.
+ * Uses search.list only (no videos.list, no category lookup).
+ * Returns just enough fields for the search overlay.
+ */
+export const getLatestVideosSimple = async (limit = 80) => {
+  const { channelId } = requireEnv();
+
+  return withCache(
+    `latest-videos-simple:${channelId}:${limit}`,
+    async () => {
+      const searchPayload = await youtubeRequest("search", {
+        part: "snippet",
+        channelId,
+        type: "video",
+        order: "date",
+        maxResults: String(Math.min(limit, 50)),
+      });
+
+      return (searchPayload.items ?? []).map((item) => ({
+        id: item.id?.videoId ?? "",
+        youtubeId: item.id?.videoId ?? "",
+        title: item.snippet?.title ?? "Untitled",
+        speaker: item.snippet?.channelTitle ?? "",
+        specialty: "General Pathology",
+        duration: "",
+        thumbnail:
+          item.snippet?.thumbnails?.high?.url ||
+          item.snippet?.thumbnails?.medium?.url ||
+          `https://img.youtube.com/vi/${item.id?.videoId}/hqdefault.jpg`,
+        description: item.snippet?.description ?? "",
+        publishedAt: item.snippet?.publishedAt,
+      }));
+    },
+    30 * 60 * 1000 // 30 min
   );
 };
 
@@ -342,16 +460,14 @@ export const getMostWatchedVideos = async (limit = 20) => {
   return withCache(
     `most-watched:${channelId}:${limit}`,
     async () => {
-      const [videos, categoryLookup] = await Promise.all([
-        getVideosFromSearch({ order: "viewCount" }, limit),
-        getCategoryLookup(),
-      ]);
+      const videos = await getVideosFromSearch({ order: "viewCount" }, limit);
 
       return videos
-        .map((video) => toLecture(video, categoryLookup))
+        .map((video) => toLecture(video, {}))
         .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
         .slice(0, limit);
-    }
+    },
+    60 * 60 * 1000 // 1 hour
   );
 };
 
@@ -362,16 +478,14 @@ export const getTrendingVideos = async (limit = 20) => {
   return withCache(
     `trending-videos:${channelId}:${limit}`,
     async () => {
-      const [videos, categoryLookup] = await Promise.all([
-        getVideosFromSearch({ order: "date", publishedAfter }, 50),
-        getCategoryLookup(),
-      ]);
+      const videos = await getVideosFromSearch({ order: "date", publishedAfter }, 50);
 
       return videos
-        .map((video) => toLecture(video, categoryLookup))
+        .map((video) => toLecture(video, {}))
         .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0))
         .slice(0, limit);
-    }
+    },
+    30 * 60 * 1000 // 30 min
   );
 };
 
@@ -432,7 +546,7 @@ export const getChannelStatistics = async () => {
         videoCount: stats.videoCount ? Number(stats.videoCount) : null,
       };
     },
-    30 * 60 * 1000,
+    24 * 60 * 60 * 1000, // 24 hours — subscriber counts don't change minute-to-minute
   );
 };
 
@@ -543,4 +657,5 @@ export const getPastLivestreamEvents = async (limit = 30) => {
 export const clearYoutubeCache = () => {
   responseCache.clear();
   inFlightRequests.clear();
+  lsClear();
 };

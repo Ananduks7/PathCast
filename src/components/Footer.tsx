@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import pathcastLogo from "@/assets/pathcast-logo.png";
+import pathcastWhiteLogo from "@/assets/pathCast-white.png";
 
 const Footer = () => (
   <footer className="mt-12 px-4 md:px-8">
@@ -8,8 +9,19 @@ const Footer = () => (
         {/* Column 1: Brand + description */}
         <div className="flex flex-col gap-4 items-start text-left">
           <Link to="/" className="flex items-center gap-3">
-            <img src={pathcastLogo} alt="pathCast" className="h-8" />
-            <span className="font-bold text-sm text-primary">pathCast</span>
+            <img
+              src={pathcastLogo}
+              alt="pathCast"
+              className="h-8 dark:hidden"
+            />
+            <img
+              src={pathcastWhiteLogo}
+              alt="pathCast"
+              className="h-8 hidden dark:block"
+            />
+            <span className="font-bold text-sm text-primary dark:text-[#EAF2F5]">
+              pathCast
+            </span>
           </Link>
           <p className="text-sm text-muted-foreground max-w-sm text-left">
             Global Open-Access Pathology Education Platform. Bridging the

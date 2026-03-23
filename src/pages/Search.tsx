@@ -1,14 +1,26 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import {
   Search as SearchIcon,
   X,
-  SlidersHorizontal,
   ArrowLeft,
   ArrowRight,
   GraduationCap,
   ChevronDown,
-  ChevronUp,
+  Check,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
@@ -23,13 +35,11 @@ import VideoCard from "@/components/VideoCard";
 import VideoPlayerModal from "@/components/VideoPlayerModal";
 import type { Lecture } from "@/data/lectures";
 import { parseDuration } from "@/data/lectures-utils";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   getChannelPlaylists,
   getPlaylistVideos,
+  searchChannelVideos,
 } from "@/services/youtubeService";
 
 type SortOption = "relevance" | "newest" | "oldest" | "duration";
@@ -81,19 +91,7 @@ const Search = () => {
   const [selectedLecture, setSelectedLecture] = useState<Lecture | null>(null);
   const [playerOpen, setPlayerOpen] = useState(false);
   const [activePlaylistId, setActivePlaylistId] = useState<string>("");
-
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    playlistBrowse: true,
-    playlistSort: true,
-    specialty: true,
-    duration: true,
-    sort: true,
-  });
-
-  const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(
-    () => typeof window !== "undefined" && window.innerWidth >= 768,
-  );
+  const [specialtyPopoverOpen, setSpecialtyPopoverOpen] = useState(false);
 
   const playlistsQuery = useQuery({
     queryKey: ["youtube", "playlists"],
@@ -127,6 +125,18 @@ const Search = () => {
     ? playlistVideosQuery.isLoading
     : playlistsQuery.isLoading;
 
+  // ── Global video search (fires when typing in the main search bar) ──
+  const videoSearchQuery = useQuery({
+    queryKey: ["youtube", "search", specialtyQuery],
+    queryFn: () => searchChannelVideos(specialtyQuery, 24),
+    enabled: !activePlaylistId && specialtyQuery.trim().length >= 1,
+    staleTime: 5 * 60 * 1000,
+  });
+  const searchedVideos = useMemo(
+    () => (videoSearchQuery.data ?? []) as Lecture[],
+    [videoSearchQuery.data],
+  );
+
   const allSpecialties = useMemo(
     () =>
       Array.from(
@@ -134,9 +144,6 @@ const Search = () => {
       ).sort(),
     [playlistVideos],
   );
-
-  const toggleSection = (key: string) =>
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const toggleSpecialty = (specialty: string) =>
     setSelectedSpecialties((prev) =>
@@ -178,13 +185,12 @@ const Search = () => {
     setSelectedSpecialties([]);
     setSelectedDurations([]);
     setSortBy("relevance");
-    if (isMobile) setSidebarOpen(false);
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const clearPlaylist = () => {
     setActivePlaylistId("");
     clearAll();
-    setSidebarOpen(!isMobile);
   };
 
   const activeFilterCount =
@@ -344,7 +350,7 @@ const Search = () => {
   const searchTestimonials: Testimonial[] = [
     {
       quote:
-        "As a practicing pathologist in the Philippines, I find pathCast to be an invaluable resource for both daily diagnostics and ongoing learning. Its well-curated lectures reflect real-world cases in surgical pathology and cytology, helping bridge the gap between theory and practice. It’s especially useful for trainees and young consultants, and provides accessible, high-quality education in settings with limited subspecialty mentorship. I highly recommend pathCast for anyone committed to continuous learning and diagnostic excellence.",
+        "As a practicing pathologist in the Philippines, I consider PathCast a valuable resource for both daily diagnostics and ongoing learning. Its well-organized lectures present real-world cases in surgical pathology and cytology, linking theory with practice. It is especially useful for trainees and early-career consultants, providing accessible, high-quality education even in settings with limited subspecialty support. I strongly recommend PathCast for those committed to continuous learning.",
       authorName: "Maria Sarah Lenon, MD, FPSP",
       designation: "Fellow in Anatomic and Clinical Pathology",
       institution: "University of Santo Tomas Hospital",
@@ -395,7 +401,7 @@ const Search = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium tracking-widest uppercase text-teal-300/80 mb-4"
+            className="text-sm font-medium tracking-widest uppercase text-[#7EECD8] mb-4"
           >
             pathCast Library
           </motion.p>
@@ -413,8 +419,8 @@ const Search = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg md:text-xl text-white/75 leading-relaxed max-w-2xl mx-auto"
           >
-            Browse categories and explore hundreds of free pathology lectures
-            from world-renowned experts.
+            Browse our comprehensive collection of pathology lectures. Filter by
+            speaker, topic, or search for specific keywords.
           </motion.p>
         </div>
 
@@ -449,20 +455,27 @@ const Search = () => {
       <div className="w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-10">
         {!activePlaylistId ? (
           <>
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                type="button"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Filters
-                {playlistFilterCount > 0 && (
-                  <span className="bg-primary text-primary-foreground text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                    {playlistFilterCount}
-                  </span>
+            {/* ── TOP FILTER BAR ───────────────────────────────────── */}
+            <div className="flex flex-col gap-3 mb-5">
+              {/* Row 1 – full-width search */}
+              <div className="relative w-full">
+                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <input
+                  value={specialtyQuery}
+                  onChange={(e) => setSpecialtyQuery(e.target.value)}
+                  placeholder="Search specialties..."
+                  className="w-full h-14 pl-12 pr-10 bg-card border border-border rounded-xl text-foreground text-base placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50 transition-shadow"
+                />
+                {specialtyQuery && (
+                  <button
+                    onClick={() => setSpecialtyQuery("")}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    type="button"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
 
             {isLoading ? (
@@ -474,238 +487,231 @@ const Search = () => {
                 <p className="text-muted-foreground">No categories found.</p>
               </div>
             ) : (
-              <div className="flex gap-6">
-                <AnimatePresence>
-                  {sidebarOpen && (
-                    <motion.aside
-                      initial={{ width: 0, opacity: 0 }}
-                      animate={{ width: isMobile ? "100%" : 280, opacity: 1 }}
-                      exit={{ width: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className={`flex-shrink-0 overflow-hidden ${
-                        isMobile
-                          ? "fixed inset-0 z-40 bg-background p-4 pt-20"
-                          : "sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
-                      }`}
-                    >
-                      <div className="space-y-1 pr-2">
-                        {isMobile && (
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Filters
-                            </h3>
-                            <button
-                              onClick={() => setSidebarOpen(false)}
-                              type="button"
-                            >
-                              <X className="w-5 h-5 text-muted-foreground" />
-                            </button>
-                          </div>
-                        )}
-
-                        <FilterSection
-                          title="Browse By"
-                          open={openSections.playlistBrowse}
-                          onToggle={() => toggleSection("playlistBrowse")}
-                        >
-                          <div className="space-y-2">
-                            <input
-                              value={specialtyQuery}
-                              onChange={(event) =>
-                                setSpecialtyQuery(event.target.value)
-                              }
-                              placeholder="Search categories"
-                              className="w-full h-10 px-3 bg-card border border-border rounded-lg text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/50"
-                            />
-
-                            <div className="space-y-1">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setSelectedPlaylistCategories([])
-                                }
-                                className={`block w-full text-left text-sm px-3 py-1.5 rounded transition-colors ${
-                                  selectedPlaylistCategories.length === 0
-                                    ? "bg-primary/15 text-primary font-medium"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                                }`}
-                              >
-                                All Categories
-                              </button>
-
-                              <div className="space-y-1 max-h-48 overflow-y-auto">
-                                {playlistCategories.map((category) => (
-                                  <label
-                                    key={String(category.id)}
-                                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer px-1 py-0.5"
-                                  >
-                                    <Checkbox
-                                      checked={selectedPlaylistCategories.includes(
-                                        category.id,
-                                      )}
-                                      onCheckedChange={() =>
-                                        togglePlaylistCategory(category.id)
-                                      }
-                                    />
-                                    <span className="truncate">
-                                      {category.title}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-
-                              {playlistCategories.length === 0 && (
-                                <p className="text-xs text-muted-foreground px-1 py-2">
-                                  No categories available.
-                                </p>
-                              )}
-                            </div>
-
-                            {hasPlaylistFilters && (
-                              <button
-                                type="button"
-                                onClick={clearPlaylistFilters}
-                                className="text-xs text-primary hover:underline"
-                              >
-                                Clear filters
-                              </button>
-                            )}
-                          </div>
-                        </FilterSection>
-
-                        <FilterSection
-                          title="Sort By"
-                          open={openSections.playlistSort}
-                          onToggle={() => toggleSection("playlistSort")}
-                        >
-                          <div className="space-y-1">
-                            {(
-                              Object.entries(PLAYLIST_SORT_LABELS) as [
-                                PlaylistSortOption,
-                                string,
-                              ][]
-                            ).map(([value, label]) => (
-                              <button
-                                key={value}
-                                onClick={() => setPlaylistSortBy(value)}
-                                className={`block w-full text-left text-sm px-3 py-1.5 rounded transition-colors ${
-                                  playlistSortBy === value
-                                    ? "bg-primary/15 text-primary font-medium"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                                }`}
-                                type="button"
-                              >
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                        </FilterSection>
-
-                        {hasPlaylistFilters && (
-                          <button
-                            type="button"
-                            onClick={clearPlaylistFilters}
-                            className={`${buttonVariants({ variant: "outline", size: "sm" })} w-full`}
-                          >
-                            Clear all
-                          </button>
-                        )}
-
-                        {isMobile && (
-                          <button
-                            onClick={() => setSidebarOpen(false)}
-                            className="w-full mt-4 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-medium"
-                            type="button"
-                          >
-                            Show {filteredPlaylists.length} categories
-                          </button>
-                        )}
-                      </div>
-                    </motion.aside>
-                  )}
-                </AnimatePresence>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-muted-foreground mb-4">
+              <div>
+                {/* Count + dropdowns in one row */}
+                <div className="flex flex-col items-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
                     <span className="text-foreground font-medium">
                       {filteredPlaylists.length}
                     </span>{" "}
                     specialt{filteredPlaylists.length === 1 ? "y" : "ies"}
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 sm:justify-end">
+                    {/* Browse By Specialty — searchable */}
+                    <Popover
+                      open={specialtyPopoverOpen}
+                      onOpenChange={setSpecialtyPopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="h-11 px-3 inline-flex items-center gap-2 bg-card border border-border rounded-lg text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/50 whitespace-nowrap"
+                        >
+                          {selectedPlaylistCategories.length > 0
+                            ? (playlistCategories.find(
+                                (c) => c.id === selectedPlaylistCategories[0],
+                              )?.title ?? "Category")
+                            : "Category"}
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search specialty..." />
+                          <CommandList>
+                            <CommandEmpty>No specialty found.</CommandEmpty>
+                            <CommandGroup>
+                              <CommandItem
+                                value="all"
+                                onSelect={() => {
+                                  setSelectedPlaylistCategories([]);
+                                  setSpecialtyPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={`mr-2 h-4 w-4 ${selectedPlaylistCategories.length === 0 ? "opacity-100" : "opacity-0"}`}
+                                />
+                                All Specialties
+                              </CommandItem>
+                              {playlistCategories.map((cat) => (
+                                <CommandItem
+                                  key={cat.id}
+                                  value={cat.title}
+                                  onSelect={() => {
+                                    setSelectedPlaylistCategories(
+                                      selectedPlaylistCategories[0] === cat.id
+                                        ? []
+                                        : [cat.id],
+                                    );
+                                    setSpecialtyPopoverOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${selectedPlaylistCategories[0] === cat.id ? "opacity-100" : "opacity-0"}`}
+                                  />
+                                  {cat.title}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
 
-                  {filteredPlaylists.length === 0 ? (
-                    <div className="py-20 text-center">
-                      <p className="text-muted-foreground">
-                        No categories found.
-                      </p>
+                    {/* Sort By */}
+                    <select
+                      value={playlistSortBy}
+                      onChange={(e) =>
+                        setPlaylistSortBy(e.target.value as PlaylistSortOption)
+                      }
+                      className="h-11 px-3 bg-card border border-border rounded-lg text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                    >
+                      {(
+                        Object.entries(PLAYLIST_SORT_LABELS) as [
+                          PlaylistSortOption,
+                          string,
+                        ][]
+                      ).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {hasPlaylistFilters && (
                       <button
                         type="button"
                         onClick={clearPlaylistFilters}
-                        className="text-primary text-sm mt-2 hover:underline"
+                        className="h-11 px-4 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
                       >
-                        Clear filters
+                        Clear
                       </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-                      {filteredPlaylists.map((playlist) => (
-                        <button
-                          key={playlist.id}
-                          onClick={() => selectPlaylist(playlist.id)}
-                          className="text-left group"
-                          type="button"
-                        >
-                          <div className="bg-card border border-border rounded-xl p-6 hover:border-primary/40 transition-colors h-full flex flex-col items-center text-center">
-                            <div className="w-20 h-20 rounded-full bg-muted border border-border flex items-center justify-center mb-6 overflow-hidden">
-                              {playlist.thumbnail ? (
-                                <img
-                                  src={playlist.thumbnail}
-                                  alt={formatSpecialtyTitle(playlist.title)}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                />
-                              ) : (
-                                <span className="text-primary font-bold text-xl tracking-wide">
-                                  {getSpecialtyInitials(playlist.title)}
-                                </span>
-                              )}
-                            </div>
-
-                            <h2 className="text-base font-semibold text-foreground leading-snug tracking-tight">
-                              {formatSpecialtyTitle(playlist.title)}
-                            </h2>
-                            <p className="text-[11px] tracking-widest uppercase text-muted-foreground mt-2">
-                              Specialty
-                            </p>
-
-                            {playlist.description?.trim() ? (
-                              <p className="text-sm text-muted-foreground mt-4 line-clamp-2">
-                                {playlist.description.trim()}
-                              </p>
-                            ) : null}
-
-                            <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
-                              <GraduationCap className="w-4 h-4" />
-                              <span>
-                                {playlist.videoCount} Lecture
-                                {playlist.videoCount !== 1 ? "s" : ""}
-                              </span>
-                            </div>
-
-                            <div className="mt-6 w-full">
-                              <div
-                                className={`${buttonVariants({ variant: "outline" })} w-full`}
-                              >
-                                View Lectures
-                                <ArrowRight className="w-4 h-4" />
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
+
+                {filteredPlaylists.length === 0 &&
+                searchedVideos.length === 0 ? (
+                  <div className="py-20 text-center">
+                    <p className="text-muted-foreground">No results found.</p>
+                    <button
+                      type="button"
+                      onClick={clearPlaylistFilters}
+                      className="text-primary text-sm mt-2 hover:underline"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Specialties grid */}
+                    {filteredPlaylists.length > 0 && (
+                      <>
+                        {specialtyQuery.trim() && (
+                          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-3">
+                            Specialties
+                          </h3>
+                        )}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 mb-10">
+                          {filteredPlaylists.map((playlist, i) => (
+                            <motion.button
+                              key={playlist.id}
+                              onClick={() => selectPlaylist(playlist.id)}
+                              className="text-left group"
+                              type="button"
+                              initial={{ opacity: 0, y: 16 }}
+                              whileInView={{ opacity: 1, y: 0 }}
+                              viewport={{ once: true, margin: "-40px" }}
+                              transition={{
+                                duration: 0.35,
+                                delay: Math.min(i % 3, 2) * 0.07,
+                              }}
+                            >
+                              <div className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/40 transition-colors h-full flex flex-col">
+                                {/* Rectangular banner */}
+                                <div className="w-full aspect-video bg-muted flex items-center justify-center overflow-hidden">
+                                  {playlist.thumbnail ? (
+                                    <img
+                                      src={playlist.thumbnail}
+                                      alt={formatSpecialtyTitle(playlist.title)}
+                                      className="w-full h-full object-cover"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <span className="text-primary font-bold text-2xl tracking-wide">
+                                      {getSpecialtyInitials(playlist.title)}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Card body */}
+                                <div className="p-5 flex flex-col flex-1">
+                                  <h2 className="text-base font-semibold text-foreground leading-snug tracking-tight">
+                                    {formatSpecialtyTitle(playlist.title)}
+                                  </h2>
+                                  <p className="text-[11px] tracking-widest uppercase text-muted-foreground mt-1">
+                                    Specialty
+                                  </p>
+
+                                  {playlist.description?.trim() ? (
+                                    <p className="text-sm text-muted-foreground mt-3 line-clamp-2">
+                                      {playlist.description.trim()}
+                                    </p>
+                                  ) : null}
+
+                                  <div className="mt-auto">
+                                    <hr className="border-border mb-4" />
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                                        <GraduationCap className="w-4 h-4" />
+                                        <span>
+                                          {playlist.videoCount} Lecture
+                                          {playlist.videoCount !== 1 ? "s" : ""}
+                                        </span>
+                                      </div>
+                                      <span className="inline-flex items-center gap-1 text-sm text-foreground group-hover:text-primary transition-colors no-underline">
+                                        View
+                                        <ArrowRight className="w-3.5 h-3.5" />
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Videos section — shown when a search query is active */}
+                    {specialtyQuery.trim().length >= 1 && (
+                      <>
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest mb-3 mt-2">
+                          Videos
+                        </h3>
+                        {videoSearchQuery.isLoading ? (
+                          <p className="text-muted-foreground text-sm mb-8">
+                            Searching videos...
+                          </p>
+                        ) : searchedVideos.length === 0 ? (
+                          <p className="text-muted-foreground text-sm mb-8">
+                            No videos found.
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 [&>div]:w-full mb-10">
+                            {searchedVideos.map((lecture) => (
+                              <VideoCard
+                                key={lecture.id}
+                                lecture={lecture}
+                                onPlay={playLecture}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
               </div>
             )}
           </>
@@ -731,7 +737,8 @@ const Search = () => {
               </div>
             </div>
 
-            <div className="relative mb-6">
+            {/* Search bar */}
+            <div className="relative mb-4">
               <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <input
                 value={query}
@@ -750,6 +757,80 @@ const Search = () => {
               )}
             </div>
 
+            {/* Count + filter dropdowns in one row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <p className="text-sm text-muted-foreground">
+                <span className="text-foreground font-medium">
+                  {results.length}
+                </span>{" "}
+                lecture{results.length !== 1 ? "s" : ""} found
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {/* Sub-Specialty */}
+                <select
+                  value={selectedSpecialties[0] ?? ""}
+                  onChange={(e) =>
+                    setSelectedSpecialties(
+                      e.target.value ? [e.target.value] : [],
+                    )
+                  }
+                  className="h-11 px-3 bg-card border border-border rounded-lg text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">All Sub-Specialties</option>
+                  {allSpecialties.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Duration */}
+                <select
+                  value={selectedDurations[0] ?? ""}
+                  onChange={(e) =>
+                    setSelectedDurations(
+                      e.target.value ? [e.target.value as DurationFilter] : [],
+                    )
+                  }
+                  className="h-11 px-3 bg-card border border-border rounded-lg text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="">All Durations</option>
+                  {(
+                    Object.entries(DURATION_LABELS) as [
+                      DurationFilter,
+                      string,
+                    ][]
+                  ).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Sort By */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  className="h-11 px-3 bg-card border border-border rounded-lg text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/50"
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="newest">Newest</option>
+                  <option value="oldest">Oldest</option>
+                  <option value="duration">Duration</option>
+                </select>
+
+                {hasLectureFilters && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="h-11 px-4 border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors whitespace-nowrap"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </div>
+
             {activeFilters.length > 0 && (
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {activeFilters.map((filter) => (
@@ -763,208 +844,37 @@ const Search = () => {
                     <X className="w-3 h-3" />
                   </Badge>
                 ))}
-                <button
-                  onClick={clearAll}
-                  className="text-xs text-primary hover:underline ml-2"
-                  type="button"
-                >
-                  Clear all
-                </button>
               </div>
             )}
 
-            <div className="flex items-center gap-3 mb-4">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                type="button"
-              >
-                <SlidersHorizontal className="w-4 h-4" />
-                Filters
-                {activeFilterCount > 0 && (
-                  <span className="bg-primary text-primary-foreground text-[10px] w-5 h-5 rounded-full flex items-center justify-center font-bold">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-            </div>
-
-            <div className="flex gap-6">
-              <AnimatePresence>
-                {sidebarOpen && (
-                  <motion.aside
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: isMobile ? "100%" : 280, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex-shrink-0 overflow-hidden ${
-                      isMobile
-                        ? "fixed inset-0 z-40 bg-background p-4 pt-20"
-                        : "sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto"
-                    }`}
-                  >
-                    <div className="space-y-1 pr-2">
-                      {isMobile && (
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-lg font-semibold text-foreground">
-                            Filters
-                          </h3>
-                          <button
-                            onClick={() => setSidebarOpen(false)}
-                            type="button"
-                          >
-                            <X className="w-5 h-5 text-muted-foreground" />
-                          </button>
-                        </div>
-                      )}
-
-                      <FilterSection
-                        title="Sub-Specialty"
-                        open={openSections.specialty}
-                        onToggle={() => toggleSection("specialty")}
-                      >
-                        {allSpecialties.length === 0 ? (
-                          <p className="text-xs text-muted-foreground px-1 py-2">
-                            No sub-specialties available.
-                          </p>
-                        ) : (
-                          <div className="space-y-1 max-h-48 overflow-y-auto">
-                            {allSpecialties.map((specialty) => (
-                              <label
-                                key={specialty}
-                                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer px-1 py-0.5"
-                              >
-                                <Checkbox
-                                  checked={selectedSpecialties.includes(
-                                    specialty,
-                                  )}
-                                  onCheckedChange={() =>
-                                    toggleSpecialty(specialty)
-                                  }
-                                />
-                                <span className="truncate">{specialty}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
-                      </FilterSection>
-                      <FilterSection
-                        title="Sort By"
-                        open={openSections.sort}
-                        onToggle={() => toggleSection("sort")}
-                      >
-                        <div className="space-y-1">
-                          {(
-                            [
-                              ["relevance", "Relevance"],
-                              ["newest", "Newest"],
-                              ["oldest", "Oldest"],
-                              ["duration", "Duration"],
-                            ] as [SortOption, string][]
-                          ).map(([value, label]) => (
-                            <button
-                              key={value}
-                              onClick={() => setSortBy(value)}
-                              className={`block w-full text-left text-sm px-3 py-1.5 rounded transition-colors ${
-                                sortBy === value
-                                  ? "bg-primary/15 text-primary font-medium"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                              }`}
-                              type="button"
-                            >
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </FilterSection>
-
-                      <FilterSection
-                        title="Duration"
-                        open={openSections.duration}
-                        onToggle={() => toggleSection("duration")}
-                      >
-                        <div className="space-y-1">
-                          {(
-                            Object.entries(DURATION_LABELS) as [
-                              DurationFilter,
-                              string,
-                            ][]
-                          ).map(([key, label]) => (
-                            <label
-                              key={key}
-                              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground cursor-pointer px-1 py-0.5"
-                            >
-                              <Checkbox
-                                checked={selectedDurations.includes(key)}
-                                onCheckedChange={() => toggleDuration(key)}
-                              />
-                              {label}
-                            </label>
-                          ))}
-                        </div>
-                      </FilterSection>
-
-                      {hasLectureFilters && (
-                        <button
-                          type="button"
-                          onClick={clearAll}
-                          className={`${buttonVariants({ variant: "outline", size: "sm" })} w-full`}
-                        >
-                          Clear all
-                        </button>
-                      )}
-
-                      {isMobile && (
-                        <button
-                          onClick={() => setSidebarOpen(false)}
-                          className="w-full mt-4 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-medium"
-                          type="button"
-                        >
-                          Show {results.length} results
-                        </button>
-                      )}
-                    </div>
-                  </motion.aside>
-                )}
-              </AnimatePresence>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-muted-foreground mb-4">
-                  <span className="text-foreground font-medium">
-                    {results.length}
-                  </span>{" "}
-                  lecture{results.length !== 1 ? "s" : ""} found
-                </p>
-                {isLoading ? (
-                  <div className="py-20 text-center">
-                    <p className="text-muted-foreground">Loading lectures...</p>
-                  </div>
-                ) : results.length === 0 ? (
-                  <div className="py-20 text-center">
-                    <p className="text-muted-foreground">
-                      No lectures found matching your criteria.
-                    </p>
-                    <button
-                      onClick={clearAll}
-                      className="text-primary text-sm mt-2 hover:underline"
-                      type="button"
-                    >
-                      Clear all filters
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-x-4 gap-y-8 [&>div]:w-full">
-                    {results.map((lecture) => (
-                      <VideoCard
-                        key={lecture.id}
-                        lecture={lecture}
-                        onPlay={playLecture}
-                      />
-                    ))}
-                  </div>
-                )}
+            {isLoading ? (
+              <div className="py-20 text-center">
+                <p className="text-muted-foreground">Loading lectures...</p>
               </div>
-            </div>
+            ) : results.length === 0 ? (
+              <div className="py-20 text-center">
+                <p className="text-muted-foreground">
+                  No lectures found matching your criteria.
+                </p>
+                <button
+                  onClick={clearAll}
+                  className="text-primary text-sm mt-2 hover:underline"
+                  type="button"
+                >
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8 [&>div]:w-full">
+                {results.map((lecture) => (
+                  <VideoCard
+                    key={lecture.id}
+                    lecture={lecture}
+                    onPlay={playLecture}
+                  />
+                ))}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -993,46 +903,5 @@ const Search = () => {
     </div>
   );
 };
-
-function FilterSection({
-  title,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-b border-border pb-3 mb-3">
-      <button
-        onClick={onToggle}
-        className="flex items-center justify-between w-full text-sm font-semibold text-foreground py-2"
-      >
-        {title}
-        {open ? (
-          <ChevronUp className="w-4 h-4" />
-        ) : (
-          <ChevronDown className="w-4 h-4" />
-        )}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
 
 export default Search;

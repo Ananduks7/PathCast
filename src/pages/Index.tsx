@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Globe, Play, Users } from "lucide-react";
-import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import HeroCarousel from "@/components/HeroCarousel";
 import LiveNowSection from "@/components/LiveNowSection";
@@ -11,8 +10,6 @@ import Footer from "@/components/Footer";
 import TestimonialCarousel, {
   type Testimonial,
 } from "@/components/TestimonialCarousel";
-import LectureCTA from "@/components/LectureCTA";
-import ctaBg from "@/assets/hero-2.jpg";
 import tatianeTestimonialImage from "@/assets/Testimonial-Image/Tatiane Comunello, MD.png";
 import enricoTestimonialImage from "@/assets/Testimonial-Image/Enrico Munari, MD, PhD.png";
 import neilTestimonialImage from "@/assets/Testimonial-Image/Neil Theise, MD.jpg";
@@ -26,6 +23,7 @@ import { useSectionVisible } from "@/hooks/use-section-visible";
 import { useLiveStatus } from "@/hooks/use-live-status";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import CTASection from "@/components/CTASection";
 
 type ChannelStats = {
   subscriberCount: number | null;
@@ -149,10 +147,10 @@ const Index = () => {
       <HeroCarousel lectures={heroQuery.data ?? []} onPlay={playLecture} />
 
       {/* ── Section A: Stats ─────────────────────────────────────── */}
-      <section className="section-a w-full py-12 md:py-16">
+      <section className="section-a w-full py-8 md:py-10">
         <div className="px-4 md:px-8">
           <div className="mx-auto max-w-5xl">
-            <div className="text-center mb-6">
+            <div className="text-center mb-8">
               <p className="text-xs font-semibold tracking-widest uppercase text-muted-foreground mb-1">
                 By the numbers
               </p>
@@ -160,13 +158,13 @@ const Index = () => {
                 Our Channel by the Numbers
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-card rounded-xl shadow-sm p-5">
-                <div className="w-9 h-9 rounded-md bg-muted flex items-center justify-center">
-                  <Users className="w-4 h-4 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-8 flex flex-col gap-4 hover:border-primary/30 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-foreground leading-none">
+                <div>
+                  <p className="text-4xl font-bold text-foreground leading-none tracking-tight">
                     {formatCount(subscriberCount)}+
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -175,12 +173,12 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="bg-card rounded-xl shadow-sm p-5">
-                <div className="w-9 h-9 rounded-md bg-muted flex items-center justify-center">
-                  <Play className="w-4 h-4 text-primary" />
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-8 flex flex-col gap-4 hover:border-primary/30 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Play className="w-6 h-6 text-primary" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-foreground leading-none">
+                <div>
+                  <p className="text-4xl font-bold text-foreground leading-none tracking-tight">
                     {formatCount(videoCount)}+
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
@@ -189,16 +187,16 @@ const Index = () => {
                 </div>
               </div>
 
-              <div className="bg-card rounded-xl shadow-sm p-5">
-                <div className="w-9 h-9 rounded-md bg-muted flex items-center justify-center">
-                  <Globe className="w-4 h-4 text-primary" />
+              <div className="bg-card border border-border rounded-2xl shadow-sm p-8 flex flex-col gap-4 hover:border-primary/30 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Globe className="w-6 h-6 text-primary" />
                 </div>
-                <div className="mt-4">
-                  <p className="text-2xl font-bold text-foreground leading-none">
-                    Global
+                <div>
+                  <p className="text-4xl font-bold text-foreground leading-none tracking-tight">
+                    170+
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Global Reach
+                    Countries Reached
                   </p>
                 </div>
               </div>
@@ -257,24 +255,22 @@ const Index = () => {
           />
         </div>
       </section>
+      <CTASection />
 
       {/* ── Section A: Testimonials ───────────────────────────────── */}
       <section className="section-a w-full py-12 px-4 md:px-8">
         <div className="w-full max-w-[1400px] mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-                What Our Community Says
-              </h2>
-              <p className="text-muted-foreground mt-2">
-                Hear from pathologists and educators around the world
-              </p>
-            </div>
-            <TestimonialCarousel testimonials={testimonials} />
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+              What Our Community Says
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              Hear from pathologists and educators around the world
+            </p>
+          </div>
+          <TestimonialCarousel testimonials={testimonials} />
         </div>
       </section>
-
-      {/* Lecture CTA */}
-      <LectureCTA lectures={latestQuery.data ?? []} />
 
       <Footer />
 

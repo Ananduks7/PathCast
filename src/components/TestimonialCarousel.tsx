@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 import {
   Carousel,
@@ -40,6 +40,7 @@ const TestimonialCarousel = ({
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [snapCount, setSnapCount] = useState(testimonials?.length ?? 0);
+  const isPaused = useRef(false);
 
   useEffect(() => {
     if (!api) return;
@@ -60,10 +61,27 @@ const TestimonialCarousel = ({
     };
   }, [api]);
 
+  // Autoplay — advances every 4.5 s, paused on hover/interaction
+  useEffect(() => {
+    if (!api || testimonials.length <= 1) return;
+    const id = setInterval(() => {
+      if (!isPaused.current) api.scrollNext();
+    }, 4500);
+    return () => clearInterval(id);
+  }, [api, testimonials.length]);
+
   if (!testimonials || testimonials.length === 0) return null;
 
   return (
-    <div className={cn("relative", className)}>
+    <div
+      className={cn("relative", className)}
+      onMouseEnter={() => {
+        isPaused.current = true;
+      }}
+      onMouseLeave={() => {
+        isPaused.current = false;
+      }}
+    >
       <Carousel
         setApi={setApi}
         opts={{ align: "center", loop: testimonials.length > 1 }}
@@ -75,7 +93,7 @@ const TestimonialCarousel = ({
               <Card className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col md:flex-row">
                 {/* Left content */}
                 <div className="flex-1 p-8 md:p-12 flex flex-col justify-center">
-                  <Quote className="w-12 h-12 text-primary/30 dark:text-[#01B2EA]/40 mb-6" />
+                  <Quote className="w-12 h-12 text-primary/30 dark:text-[#4EC6B5]/40 mb-6" />
                   <p className="text-muted-foreground leading-relaxed text-base md:text-lg mb-8">
                     {t.quote}
                   </p>
@@ -84,7 +102,7 @@ const TestimonialCarousel = ({
                       {t.authorName}
                     </p>
                     {t.designation && (
-                      <p className="text-sm text-primary dark:text-[#01B2EA] font-medium mt-0.5">
+                      <p className="text-sm text-primary dark:text-[#4EC6B5] font-medium mt-0.5">
                         {t.designation}
                       </p>
                     )}
@@ -101,7 +119,7 @@ const TestimonialCarousel = ({
                       <img
                         src={t.authorImageSrc}
                         alt={t.authorImageAlt ?? t.authorName}
-                        className="absolute inset-0 h-full w-full object-contain"
+                        className="absolute inset-0 h-full w-full object-cover"
                         loading="lazy"
                       />
                     ) : (
@@ -121,7 +139,13 @@ const TestimonialCarousel = ({
           <button
             type="button"
             className="w-10 h-10 rounded-full border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-            onClick={() => api?.scrollPrev()}
+            onClick={() => {
+              api?.scrollPrev();
+              isPaused.current = true;
+              setTimeout(() => {
+                isPaused.current = false;
+              }, 8000);
+            }}
             disabled={!api?.canScrollPrev()}
             aria-label="Previous testimonial"
           >
@@ -133,7 +157,13 @@ const TestimonialCarousel = ({
               <button
                 key={i}
                 type="button"
-                onClick={() => api?.scrollTo(i)}
+                onClick={() => {
+                  api?.scrollTo(i);
+                  isPaused.current = true;
+                  setTimeout(() => {
+                    isPaused.current = false;
+                  }, 8000);
+                }}
                 className={cn(
                   "h-2 rounded-full transition-all duration-300",
                   i === activeIndex
@@ -149,7 +179,13 @@ const TestimonialCarousel = ({
           <button
             type="button"
             className="w-10 h-10 rounded-full border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors disabled:opacity-50 disabled:pointer-events-none"
-            onClick={() => api?.scrollNext()}
+            onClick={() => {
+              api?.scrollNext();
+              isPaused.current = true;
+              setTimeout(() => {
+                isPaused.current = false;
+              }, 8000);
+            }}
             disabled={!api?.canScrollNext()}
             aria-label="Next testimonial"
           >

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -9,6 +9,8 @@ import {
   Users,
   Building2,
   Globe,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
@@ -26,15 +28,14 @@ import {
 } from "@/data/speakers";
 import type { Speaker } from "@/data/speakers";
 
-const BATCH_SIZE = 20;
+const PAGE_SIZE = 16; // 4 rows × 4 columns (xl breakpoint)
 
 const Speakers = () => {
   const [query, setQuery] = useState("");
   const [selectedSubspecialty, setSelectedSubspecialty] = useState("");
   const [selectedInstitution, setSelectedInstitution] = useState("");
-  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedLetter, setSelectedLetter] = useState("");
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => {
@@ -64,31 +65,22 @@ const Speakers = () => {
     return result;
   }, [query, selectedSubspecialty, selectedInstitution, selectedLetter]);
 
-  // Reset visible count whenever filters change
+  // Reset to page 1 whenever filters change
   useEffect(() => {
-    setVisibleCount(BATCH_SIZE);
+    setCurrentPage(1);
   }, [query, selectedSubspecialty, selectedInstitution, selectedLetter]);
 
-  const loadMore = useCallback(() => {
-    setVisibleCount((prev) => Math.min(prev + BATCH_SIZE, filtered.length));
-  }, [filtered.length]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const visibleSpeakers = filtered.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
-  // Sentinel observer — fires loadMore when bottom sentinel enters viewport
-  useEffect(() => {
-    const node = sentinelRef.current;
-    if (!node) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
-      { rootMargin: "200px" },
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [loadMore]);
-
-  const visibleSpeakers = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const speakerTestimonials: Testimonial[] = [
     {
@@ -181,7 +173,7 @@ const Speakers = () => {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-sm font-medium tracking-widest uppercase text-teal-300/80 mb-4"
+            className="text-sm font-medium tracking-widest uppercase text-[#7EECD8] mb-4"
           >
             pathCast Faculty
           </motion.p>
@@ -368,22 +360,66 @@ const Speakers = () => {
             ))}
           </div>
 
-          {/* Sentinel + loader */}
-          <div ref={sentinelRef} className="pb-12">
-            {hasMore && (
-              <div className="flex justify-center py-6">
-                <div className="flex gap-1.5">
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className="w-2 h-2 rounded-full bg-primary/40 animate-bounce"
-                      style={{ animationDelay: `${i * 0.15}s` }}
-                    />
-                  ))}
-                </div>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 py-10">
+              <button
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Prev
+              </button>
+
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (p) =>
+                      p === 1 ||
+                      p === totalPages ||
+                      Math.abs(p - safePage) <= 1,
+                  )
+                  .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1)
+                      acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((item, idx) =>
+                    item === "..." ? (
+                      <span
+                        key={`ellipsis-${idx}`}
+                        className="px-2 text-muted-foreground text-sm select-none"
+                      >
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        onClick={() => goToPage(item as number)}
+                        className={`min-w-[2.25rem] h-9 rounded-lg text-sm font-medium transition-colors ${
+                          safePage === item
+                            ? "bg-primary text-primary-foreground"
+                            : "border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ),
+                  )}
               </div>
-            )}
-          </div>
+
+              <button
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                className="flex items-center gap-1 px-3 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -418,7 +454,7 @@ function SpeakerCard({ speaker, index }: { speaker: Speaker; index: number }) {
     >
       <div className="p-5 space-y-3">
         {/* Avatar */}
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto overflow-hidden">
+        <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center mx-auto overflow-hidden">
           {speaker.image ? (
             <img
               src={speaker.image}
@@ -426,7 +462,7 @@ function SpeakerCard({ speaker, index }: { speaker: Speaker; index: number }) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <User className="w-7 h-7 text-muted-foreground" />
+            <User className="w-10 h-10 text-muted-foreground" />
           )}
         </div>
 
@@ -470,7 +506,7 @@ function SpeakerCard({ speaker, index }: { speaker: Speaker; index: number }) {
             e.stopPropagation();
             navigate(`/speakers/${speaker.id}`);
           }}
-          className="w-full mt-2 flex items-center justify-center gap-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary/30 dark:text-primary-foreground dark:hover:bg-primary/60 py-2 rounded-lg text-xs font-medium transition-colors"
+          className="w-full mt-2 flex items-center justify-center gap-1.5 bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground dark:bg-primary/15 dark:text-primary dark:hover:bg-primary dark:hover:text-[#0d1a17] py-2 rounded-lg text-xs font-medium transition-colors"
         >
           <Play className="w-3 h-3" />
           View Lectures ({speaker.lectures.length})

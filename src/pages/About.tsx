@@ -12,10 +12,10 @@ import {
   BookOpen,
   GraduationCap,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import heroBg from "@/assets/hero-1.jpg";
+import CTASection from "@/components/CTASection";
 import storyBg from "@/assets/hero-2.jpg";
 import globalBg from "@/assets/hero-3.jpg";
 import TestimonialCarousel, {
@@ -192,7 +192,7 @@ const About = () => {
   const recognitionTestimonials: Testimonial[] = [
     {
       quote:
-        "pathCast is a lifeline for Ukrainian Pathology. In the midst of full-scale war, the physical barriers to attending international conferences and workshops are insurmountable for many of us in Ukraine. pathCast has been a vital bridge to the global medical community. Through the dedicated leadership of Dr. Rifat Mannan, we are given the unique opportunity to learn from world-renowned pathologists and WHO experts for free. This platform isn't just about lectures; it’s about providing us with the high-level knowledge and skills we need to continue our work when we need it most. We are deeply grateful for this open-access window to the world.",
+        "PathCast has become a vital resource for pathology in Ukraine. During ongoing war, attending international conferences is often impossible for many of us. PathCast bridges this gap by connecting us to the global medical community. Under Dr. Rifat Mannan’s leadership, it offers access to lectures from leading pathologists and WHO experts at no cost. Beyond teaching, it equips us with essential knowledge and skills to continue our work. We are deeply grateful for this open-access resource.",
       authorName: "Vladyslav Ilchenko, MD",
       designation: "Assistant Professor",
       institution: "Shupyk National Healthcare University of Ukraine",
@@ -202,7 +202,7 @@ const About = () => {
     },
     {
       quote:
-        "As a consultant AP/GU pathologist and board examiner, I value platforms that deliver rigorous, clinically relevant education. pathCast stands out for its ability to integrate classification updates, emerging data, and real-world diagnostic decision-making. Its sessions go beyond summaries, addressing gray zones and practical challenges where morphology, immunohistochemistry, and evolving WHO frameworks intersect. The recent discussion on low-risk renal oncocytic neoplasms was a strong example—balanced, evidence-based, and directly applicable at the sign-out desk. For pathologists who prioritize precision and critical thinking, pathCast is a truly valuable academic resource.",
+        "As a consultant AP/GU pathologist and board examiner, I value platforms that provide clinically relevant education. PathCast stands out by integrating classification updates, new data, and real-world diagnostic decision-making. Its sessions go beyond summaries, addressing practical challenges where morphology, immunohistochemistry, and WHO frameworks intersect. The discussion on renal oncocytic neoplasms was balanced, evidence-based, and highly applicable.",
       authorName: "Abdullah Alharbi, MD",
       designation: "Consultant Pathologist",
       institution: "King Fahad Armed Forces Hospital",
@@ -244,7 +244,7 @@ const About = () => {
           transition={{ duration: 0.7 }}
           className="relative z-10 text-center px-4 md:px-8 max-w-3xl mx-auto pt-36 pb-20"
         >
-          <p className="text-sm font-medium tracking-widest uppercase text-teal-300/80 mb-4">
+          <p className="text-sm font-medium tracking-widest uppercase text-[#7EECD8] mb-4">
             Open Access · Global · Expert-Led
           </p>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
@@ -425,7 +425,7 @@ const About = () => {
 
       {/* ── SECTION 3: IMPACT / GLOBAL COMMUNITY ───────────────────── */}
       <section className="section-b py-20 md:py-28 px-4 md:px-8">
-        <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+        <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-12 md:gap-16 items-center">
           {/* Left: stats */}
           <motion.div
             variants={fadeUp}
@@ -480,7 +480,7 @@ const About = () => {
               <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
                 Follow us
               </p>
-              <div className="flex flex-wrap gap-4">
+              <div className="grid grid-cols-4 gap-3">
                 {[
                   {
                     label: "X / Twitter",
@@ -880,11 +880,6 @@ const About = () => {
                     Learn more <ExternalLink className="w-3 h-3" />
                   </span>
                 )}
-                {collab.links !== "#" && (
-                  <span className="mt-4 inline-flex items-center gap-1 text-xs text-primary font-medium">
-                    Learn more <ExternalLink className="w-3 h-3" />
-                  </span>
-                )}
               </motion.a>
             ))}
           </div>
@@ -892,43 +887,7 @@ const About = () => {
       </section>
 
       {/* ── SECTION 8: CTA ──────────────────────────────────────────── */}
-      <section className="relative py-24 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-20"
-          style={{ backgroundImage: `url(${heroBg})` }}
-        />
-        <div className="absolute inset-0 bg-primary/90" />
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true }}
-          className="relative z-10 text-center px-4 md:px-8 max-w-2xl mx-auto text-primary-foreground"
-        >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to expand your knowledge?
-          </h2>
-          <p className="text-primary-foreground/85 text-base md:text-lg mb-8 leading-relaxed">
-            Join thousands of pathologists worldwide and get access to our
-            complete library of lectures.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => navigate("/search")}
-              className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-8 py-3 rounded-lg hover:bg-white/90 transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              Start Watching
-            </button>
-            <Link
-              to="/contact"
-              className="inline-flex items-center gap-2 border border-primary-foreground/30 bg-transparent text-primary-foreground font-semibold px-8 py-3 rounded-lg hover:bg-primary-foreground/10 transition-colors"
-            >
-              Contact Us
-            </Link>
-          </div>
-        </motion.div>
-      </section>
+      <CTASection />
 
       <Footer />
     </div>

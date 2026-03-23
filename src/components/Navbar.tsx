@@ -7,12 +7,13 @@ import ThemeToggle from "@/components/ThemeToggle";
 import SearchOverlay from "@/components/SearchOverlay";
 import VideoPlayerModal from "@/components/VideoPlayerModal";
 import pathcastLogo from "@/assets/pathcast-logo.png";
+import pathcastWhiteLogo from "@/assets/pathCast-white.png";
 import type { Lecture } from "@/data/lectures";
 import type { SearchItem } from "@/types/search";
 import { speakers } from "@/data/speakers";
 import { resources } from "@/data/resources";
 import { events } from "@/data/events";
-import { getLatestVideos } from "@/services/youtubeService";
+import { getLatestVideosSimple } from "@/services/youtubeService";
 import { useLiveStatus } from "@/hooks/use-live-status";
 
 const navItems = [
@@ -45,8 +46,9 @@ const Navbar = () => {
 
   const globalSearchLecturesQuery = useQuery({
     queryKey: ["youtube", "global-search-lectures"],
-    queryFn: () => getLatestVideos(80),
-    staleTime: 10 * 60 * 1000,
+    queryFn: () => getLatestVideosSimple(80),
+    enabled: searchOpen, // only fetch when the user actually opens search
+    staleTime: 30 * 60 * 1000,
   });
 
   const handleSearchClick = () => {
@@ -182,8 +184,19 @@ const Navbar = () => {
             }}
             className="flex items-center gap-1"
           >
-            <img src={pathcastLogo} alt="pathCast" className="h-8" />
-            <span className="font-bold text-lg text-primary">pathCast</span>
+            <img
+              src={pathcastLogo}
+              alt="pathCast"
+              className="h-8 dark:hidden"
+            />
+            <img
+              src={pathcastWhiteLogo}
+              alt="pathCast"
+              className="h-8 hidden dark:block"
+            />
+            <span className="font-bold text-lg text-primary dark:text-[#EAF2F5]">
+              pathCast
+            </span>
           </a>
         </div>
 
@@ -199,7 +212,7 @@ const Navbar = () => {
               }}
               className={`text-sm transition-colors duration-200 ${
                 isNavItemActive(item.href)
-                  ? "text-primary dark:text-[#01B2EA] font-medium"
+                  ? "text-primary dark:text-[#4EC6B5] font-medium"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -277,7 +290,7 @@ const Navbar = () => {
                   }}
                   className={`text-sm ${
                     isNavItemActive(item.href)
-                      ? "text-primary dark:text-[#013F51] font-medium"
+                      ? "text-primary dark:text-[#4EC6B5] font-medium"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
